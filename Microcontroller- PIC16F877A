@@ -1,0 +1,454 @@
+#include<pic.h>
+__CONFIG(HS&WDTDIS&LVPDIS);
+#define _XTAL_FREQ 10000000
+#include"seriel.c"
+#include"lcd.c"
+#include"adc.c"
+void ble_motor();
+void ultrasonic();
+void hb();
+void mems();
+void ges_motor();
+#define ultrasonic1 RB7
+#define trig RB6
+#define buz RB5
+#define m4 RB4
+#define m3 RB3
+#define m2 RB2
+#define m1 RB1
+#define relayges RB0
+#define sw RC0 // control
+#define sw1 RC1
+#define vrx RC2
+#define vry RC3
+unsigned int one1,ten1,hund1,k,j,e,d,ll;
+unsigned char ones1,tens1,hunds1;
+unsigned char y,z;
+unsigned char aa;
+int p,q,fs=0;
+
+void delay(int i)
+
+34
+
+{
+while(i--);
+}
+
+void interrupt serial()
+{
+if(RCIF==1)
+{
+aa=RCREG;
+
+RCIF=0;
+}
+else
+{
+TXIF=0;
+}
+}
+
+void main()
+{
+TRISD=0x00;
+TRISA=0xFF;
+TRISE=0x00;
+TRISB0=0;
+TRISB1=0;
+TRISB2=0;
+TRISB3=0;
+TRISB4=0;
+TRISB5=0;
+TRISB6=0;
+TRISB7=1;
+TRISC0=1;
+TRISC1=1;
+TRISC2=1;
+
+35
+
+TRISC3=1;
+TRISC4=1;
+TRISC5=1;
+PORTC=0x00;
+PORTB=0X00;
+ADCON0=0x81;
+ADCON1=0x8e;
+ADRESH=0x00;
+TXSTA=0x26;
+RCSTA=0x90;
+SPBRG=0x40;
+GIE=1;
+PEIE=1;
+RCIE=1;
+lcdinit();
+CMCON=0x07;
+CVRCON=0x00;
+
+aa='x';
+while(1)
+{
+trans_str("sensornewgsm.php?client=iot2k18123&s1=%20&s2=%20&s3=%20&s4=%20&s5
+=%20&sms=NO&msg=demo#");
+ultrasonic();
+hb();
+l=0;
+mems();
+if(sw==1)
+{
+if(((ll>5)&&(ll<=200))||(y>170))
+{
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+
+36
+
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+buz=1;
+aa='x';
+}
+else
+{
+relayges=1;
+delay(6500);
+ges_motor();
+buz=0;
+}
+}
+else
+{
+if(((ll>5)&&(ll<=350))||(y>170))
+{
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+buz=1;
+aa='x';
+}
+else
+{
+relayges=0;
+delay(6500);
+ble_motor();
+buz=0;
+
+37
+
+}
+}
+if(aa=='f')
+{
+if(fs==0)
+{
+buz=1;
+fs=1;
+delay(65000);
+}
+else if(fs==1)
+{
+buz=0;
+fs=0;
+delay(65000);
+}
+}
+}
+}
+
+void mems()
+{
+trans_str("sensornewgsm.php?client=iot2k18123&s1=");
+lcdcommand(0x87);
+lcdstr("MEMS:");
+delay(6500);
+CHS0=1;
+CHS1=0;
+CHS2=0;
+delay(6500);
+GODONE=1;
+delay(6500);
+while(GODONE==1);
+delay(6500);
+
+38
+
+y=(ADRESL);
+delay(6500);
+adc_conv2(y);
+delay(6500);
+trans_str("ANGLE&s2=%20&s3=%20&s4=%20&s5=%20&sms=NO&msg=demo#");
+}
+
+void hb()
+{
+for(s=0;s<80;s++)
+{
+delay(650);
+adc_conv();
+}
+if(l<10)
+{
+l=0;
+}
+else if((l>=10)&&(l<20))
+{
+l=l+75;
+}
+else if((l>=20)&&(l<30))
+{
+l=l+58;
+}
+else if((l>=30)&&(l<40))
+{
+l=l+43;
+}
+else if((l>=40)&&(l<50))
+{
+l=l+37;
+}
+
+39
+
+else if((l>=50)&&(l<65))
+{
+l=l+26;
+}
+else if((l>=65)&&(l<80))
+{
+l=l+8;
+}
+else if((l>=80)&&(l<90))
+{
+l=l;
+l=0;
+}
+else
+{
+l=l-14;
+}
+lcdcommand(0x80);
+lcdstr("HB:");
+trans_str("sensornewgsm.php?client=iot2k18123&s1=%20&s2=");
+one1=l%10;
+ten1=l%100;
+ten1=ten1/10;
+hund1=l/100;
+ones1=one1+(0x30);
+tens1=ten1+(0X30);
+hunds1=hund1+(0X30);
+lcdcommand(0X83);
+lcddat(hunds1);
+lcddat(tens1);
+lcddat(ones1);
+delay(65000);
+delay(65000);
+l=0;
+
+40
+
+trans(hunds1);
+trans(tens1);
+trans(ones1);
+trans_str("_HB&s3=%20&s4=%20&s5=%20&sms=NO&msg=demo#");
+}
+
+void ges_motor()
+{
+if((sw1==1)&&(vrx==1))
+{
+lcdcommand(0xc9);
+lcdstr("FORWARD");
+m1=0;
+m2=1;
+m3=0;
+m4=1;
+aa='x';
+
+}
+else if((sw1==1)&&(vry==1))
+{
+lcdcommand(0xc9);
+lcdstr(" REVERSE ");
+m1=1;
+m2=0;
+m3=1;
+m4=0;
+aa='x';
+}
+else if((sw1==0)&&(vrx==1))
+{
+lcdcommand(0xc9);
+lcdstr("LEFT ");
+
+41
+
+m1=0;
+m2=1;
+m3=1;
+m4=0;
+aa='x';
+}
+else if((sw1==0)&&(vry==1))
+{
+lcdcommand(0xc9);
+lcdstr(" RIGHT ");
+m1=1;
+m2=0;
+m3=0;
+m4=1;
+aa='x';
+}
+else if((sw1==1)&&(vrx==0)&&(vry==0))
+{
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+aa='x';
+}
+else
+{
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+
+42
+
+aa='x';
+}
+}
+
+void ble_motor()
+{
+if(aa=='a')
+{
+lcdcommand(0xc9);
+lcdstr("FORWARD");
+m1=0;
+m2=1;
+m3=0;
+m4=1;
+}
+else if(aa=='b')
+{
+lcdcommand(0xc9);
+lcdstr("LEFT ");
+m1=0;
+m2=1;
+m3=1;
+m4=0;
+}
+else if(aa=='c')
+{
+lcdcommand(0xc9);
+lcdstr(" RIGHT ");
+m1=1;
+m2=0;
+m3=0;
+m4=1;
+}
+else if(aa=='d')
+
+43
+
+{
+lcdcommand(0xc9);
+lcdstr(" REVERSE ");
+m1=1;
+m2=0;
+m3=1;
+m4=0;
+}
+else if(aa=='e')
+{
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+}
+else if(aa=='f')
+{
+if(fs==0)
+{
+buz=1;
+fs=1;
+delay(65000);
+}
+else if(fs==1)
+{
+buz=0;
+fs=0;
+delay(65000);
+}
+}
+else
+{
+
+44
+
+lcdcommand(0xc9);
+lcdstr(" STOP ");
+m1=0;
+m2=0;
+m3=0;
+m4=0;
+}
+}
+
+void ultrasonic()
+{
+trig=1;
+for(e=0;e<30;e++);
+trig=0;
+for(e=0;e<30;e++);
+trig=1;
+for(e=0;e<30;e++);
+while(ultrasonic1==0);
+if(ultrasonic1==1)
+{
+while(ultrasonic1==1)
+{
+d++;
+if(d>10000)
+break;
+}
+d=d*2;
+trans_str("sensornewgsm.php?client=iot2k18123&s1=%20&s2=%20&s3=");
+
+ll=d;
+for(e=0;e<20000;e++);
+d=0;
+lcdcommand(0xc0);
+lcdstr("U:");
+lcdcommand(0xC2);
+
+45
+lcddat((ll%10000)/1000+0x30);
+lcddat((ll%1000)/100+0x30);
+lcddat((ll%100)/10+0x30);
+lcddat((ll%10)+0x30);
+lcddat('m');
+lcddat('m');
+trans((ll%10000)/1000+0x30);
+trans((ll%1000)/100+0x30);
+trans((ll%100)/10+0x30);
+trans((ll%10)+0x30);
+trans('m');
+trans('m');
+
+trans_str("s4=%20&s5=%20&sms=NO&msg=demo#");
+}
+}
